@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Net;
 using System.IO;
 using System.ComponentModel;
+using System.Xml.Serialization;
 
 namespace Котировки
 {
@@ -50,6 +51,8 @@ namespace Котировки
             this.графикToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.заВесьПериодToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.заПериодToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.ценовойКаналToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripComboBox1 = new System.Windows.Forms.ToolStripComboBox();
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.downloadBindingSource = new System.Windows.Forms.BindingSource(this.components);
             this.listBox2 = new System.Windows.Forms.ListBox();
@@ -63,7 +66,7 @@ namespace Котировки
             // 
             // zedGraphControl1
             // 
-            this.zedGraphControl1.Location = new System.Drawing.Point(0, 32);
+            this.zedGraphControl1.Location = new System.Drawing.Point(0, 35);
             this.zedGraphControl1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.zedGraphControl1.Name = "zedGraphControl1";
             this.zedGraphControl1.ScrollGrace = 0D;
@@ -73,7 +76,7 @@ namespace Котировки
             this.zedGraphControl1.ScrollMinX = 0D;
             this.zedGraphControl1.ScrollMinY = 0D;
             this.zedGraphControl1.ScrollMinY2 = 0D;
-            this.zedGraphControl1.Size = new System.Drawing.Size(611, 438);
+            this.zedGraphControl1.Size = new System.Drawing.Size(1089, 636);
             this.zedGraphControl1.TabIndex = 0;
             this.zedGraphControl1.Load += new System.EventHandler(this.zedGraphControl1_Load);
             // 
@@ -83,11 +86,12 @@ namespace Котировки
             this.listBox1.Font = new System.Drawing.Font("Microsoft Sans Serif", 16.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.listBox1.FormattingEnabled = true;
             this.listBox1.ItemHeight = 31;
-            this.listBox1.Location = new System.Drawing.Point(618, 63);
+            this.listBox1.Location = new System.Drawing.Point(1095, 59);
             this.listBox1.Name = "listBox1";
             this.listBox1.Size = new System.Drawing.Size(116, 407);
             this.listBox1.TabIndex = 2;
             this.listBox1.SelectedIndexChanged += new System.EventHandler(this.listBox1_SelectedIndexChanged);
+            this.listBox1.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.listBox1_MouseDoubleClick);
             // 
             // добавитьToolStripMenuItem
             // 
@@ -141,10 +145,12 @@ namespace Котировки
             // показатьToolStripMenuItem
             // 
             this.показатьToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.графикToolStripMenuItem});
+            this.графикToolStripMenuItem,
+            this.ценовойКаналToolStripMenuItem});
             this.показатьToolStripMenuItem.Name = "показатьToolStripMenuItem";
             this.показатьToolStripMenuItem.Size = new System.Drawing.Size(94, 24);
             this.показатьToolStripMenuItem.Text = "Показать...";
+            this.показатьToolStripMenuItem.Click += new System.EventHandler(this.показатьToolStripMenuItem_Click);
             // 
             // графикToolStripMenuItem
             // 
@@ -152,12 +158,11 @@ namespace Котировки
             this.заВесьПериодToolStripMenuItem,
             this.заПериодToolStripMenuItem});
             this.графикToolStripMenuItem.Name = "графикToolStripMenuItem";
-            this.графикToolStripMenuItem.Size = new System.Drawing.Size(175, 24);
+            this.графикToolStripMenuItem.Size = new System.Drawing.Size(185, 24);
             this.графикToolStripMenuItem.Text = "График";
             // 
             // заВесьПериодToolStripMenuItem
             // 
-            this.заВесьПериодToolStripMenuItem.Enabled = false;
             this.заВесьПериодToolStripMenuItem.Name = "заВесьПериодToolStripMenuItem";
             this.заВесьПериодToolStripMenuItem.Size = new System.Drawing.Size(185, 24);
             this.заВесьПериодToolStripMenuItem.Text = "За весь период";
@@ -171,6 +176,32 @@ namespace Котировки
             this.заПериодToolStripMenuItem.Text = "За период...";
             this.заПериодToolStripMenuItem.Click += new System.EventHandler(this.заПериодToolStripMenuItem_Click);
             // 
+            // ценовойКаналToolStripMenuItem
+            // 
+            this.ценовойКаналToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripComboBox1});
+            this.ценовойКаналToolStripMenuItem.Enabled = false;
+            this.ценовойКаналToolStripMenuItem.Name = "ценовойКаналToolStripMenuItem";
+            this.ценовойКаналToolStripMenuItem.Size = new System.Drawing.Size(185, 24);
+            this.ценовойКаналToolStripMenuItem.Text = "Ценовой канал";
+            this.ценовойКаналToolStripMenuItem.Click += new System.EventHandler(this.ценовойКаналToolStripMenuItem_Click);
+            // 
+            // toolStripComboBox1
+            // 
+            this.toolStripComboBox1.Items.AddRange(new object[] {
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10"});
+            this.toolStripComboBox1.Name = "toolStripComboBox1";
+            this.toolStripComboBox1.Size = new System.Drawing.Size(121, 28);
+            // 
             // menuStrip1
             // 
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
@@ -178,7 +209,7 @@ namespace Котировки
             this.показатьToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(1015, 28);
+            this.menuStrip1.Size = new System.Drawing.Size(1492, 28);
             this.menuStrip1.TabIndex = 1;
             this.menuStrip1.Text = "menuStrip1";
             this.menuStrip1.ItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.menuStrip1_ItemClicked);
@@ -187,7 +218,7 @@ namespace Котировки
             // 
             this.listBox2.FormattingEnabled = true;
             this.listBox2.ItemHeight = 16;
-            this.listBox2.Location = new System.Drawing.Point(740, 63);
+            this.listBox2.Location = new System.Drawing.Point(1217, 59);
             this.listBox2.MultiColumn = true;
             this.listBox2.Name = "listBox2";
             this.listBox2.Size = new System.Drawing.Size(263, 324);
@@ -198,7 +229,7 @@ namespace Котировки
             // 
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.5F);
-            this.label1.Location = new System.Drawing.Point(619, 40);
+            this.label1.Location = new System.Drawing.Point(1096, 36);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(110, 20);
             this.label1.TabIndex = 4;
@@ -208,7 +239,7 @@ namespace Котировки
             // 
             this.label2.AutoSize = true;
             this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.5F);
-            this.label2.Location = new System.Drawing.Point(741, 40);
+            this.label2.Location = new System.Drawing.Point(1218, 36);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(195, 20);
             this.label2.TabIndex = 5;
@@ -216,7 +247,7 @@ namespace Котировки
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(740, 397);
+            this.button1.Location = new System.Drawing.Point(1217, 393);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(262, 66);
             this.button1.TabIndex = 6;
@@ -226,7 +257,7 @@ namespace Котировки
             // 
             // progressBar1
             // 
-            this.progressBar1.Location = new System.Drawing.Point(740, 354);
+            this.progressBar1.Location = new System.Drawing.Point(1217, 350);
             this.progressBar1.Name = "progressBar1";
             this.progressBar1.Size = new System.Drawing.Size(262, 37);
             this.progressBar1.TabIndex = 7;
@@ -236,7 +267,7 @@ namespace Котировки
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1015, 475);
+            this.ClientSize = new System.Drawing.Size(1492, 673);
             this.Controls.Add(this.progressBar1);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.label2);
@@ -250,6 +281,8 @@ namespace Котировки
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Quotes";
+            this.Activated += new System.EventHandler(this.Form1_Activated);
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
@@ -265,9 +298,13 @@ namespace Котировки
         public DateTime start;
         public int manage = 0;
         public DateTime end;
+        public string pathtofile;
+        XmlSerializer formatter;
+        Ser Serialize;
         static BackgroundWorker bw = new BackgroundWorker();
         private string tickerPath;                 /// путь к файлу тиккеров
         private Dictionary<string, string> generatedLinks;             /// список ссылок для скачивания
+        private Dictionary<string, string> fileinfos;
         private List<string> loadedFiles;                /// список загруженных файлов
         private string pathToFolder;               /// путь к папке загрузки
         private ZedGraph.ZedGraphControl zedGraphControl1;
@@ -292,6 +329,8 @@ namespace Котировки
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.ProgressBar progressBar1;
+        private System.Windows.Forms.ToolStripMenuItem ценовойКаналToolStripMenuItem;
+        private System.Windows.Forms.ToolStripComboBox toolStripComboBox1;
     }
 }
 

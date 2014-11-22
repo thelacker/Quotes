@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Директивы
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -11,35 +12,94 @@ using System.IO;
 using ZedGraph;
 using System.Net;
 using System.Threading;
+using System.Xml.Serialization;
 
 namespace Котировки
 {
     public partial class Form1 : Form
     {
-        
-        /// <summary>
-        /// Создание формы
-        /// </summary>
-        public Form1()
+        // Работа с формой
+        public Form1()  
         {
             InitializeComponent();
-        }
+            fileinfos = new Dictionary<string, string>();
+        }                                                                                                                           // Загрузка формы
         private void zedGraphControl1_Load                  (object sender, EventArgs e)
         {
 
-        }
+        }                                                           // Загрузка ZedGraph
         private void Form1_Load                             (object sender, EventArgs e)
         {
 
-        }
-        private void menuStrip1_ItemClicked                 (object sender, ToolStripItemClickedEventArgs e)
+        }                                                           // Загрузка предыдущего сеанса
+        private void Form1_Activated                        (object sender, EventArgs e)
         {
+            try
+            {
+                // Обеъект десериализации
+                formatter = new XmlSerializer(typeof(Ser));
 
-        }
+                // Десериализируем
+                using (FileStream fs = new FileStream("quotes.xml", FileMode.OpenOrCreate))
+                {
+                    Ser newSerialize = (Ser)formatter.Deserialize(fs);
+
+                    // Достаем поля
+                    start       =   newSerialize.start;
+                    end         =   newSerialize.end;
+                    pathtofile  =   newSerialize.quote;
+
+                    // Достаем период
+                    toolStripComboBox1.SelectedItem = Convert.ToString(newSerialize.period);
+                    
+                    // Новый объект котировок
+                    q           =   new StockQuotes.Quotes(pathtofile, new TimeSpan(1, 0, 0, 0));
+                    FileInfo fi =   new FileInfo(pathtofile);
+
+                    // Активаци рисовки
+                    listBox1.Items.Add(fi.FullName);
+                    заВесьПериодToolStripMenuItem.Enabled    = true;
+                    заПериодToolStripMenuItem.Enabled        = true;
+                    ценовойКаналToolStripMenuItem.Enabled    = true;
+                }
+            }
+
+            // В случае отсутствия объекта сериализации
+            catch (Exception ex)
+            {
+                start       = Convert.ToDateTime(0);
+                end         = Convert.ToDateTime(0);
+                pathtofile  = null;
+
+                toolStripComboBox1.SelectedItem = "1";
+            }
+        }                                                           // Активация формы и десериализация 
         private void выходToolStripMenuItem_Click           (object sender, EventArgs e)
         {
             
-        }
+        }                                                           // Выход из формы
+        private void Form1_FormClosing                      (object sender, FormClosingEventArgs e)
+        {
+            // Сериализация
+            if (start != null)
+                Serialize = new Ser(pathtofile, start, end, Convert.ToInt32(toolStripComboBox1.SelectedItem));
+            else
+                Serialize = new Ser(pathtofile, Convert.ToDateTime(0), Convert.ToDateTime(0), Convert.ToInt32(toolStripComboBox1.SelectedItem));
+
+            // Объект сериализации
+            formatter = new XmlSerializer(typeof(Ser));
+
+            // Сериализация в файл
+            using (FileStream fs = new FileStream("quotes.xml", FileMode.OpenOrCreate))
+            {
+                formatter.Serialize(fs, Serialize);
+            }
+        }                                                // Закрытие формы и сериализация
+        private void menuStrip1_ItemClicked                 (object sender, ToolStripItemClickedEventArgs e)
+        {
+
+        }                                       // Активация верхнего меню
+
 
         // Верхнее меню
         private void изПапкиToolStripMenuItem_Click         (object sender, EventArgs e)
@@ -50,37 +110,19 @@ namespace Котировки
 
             if (openFileDialog1.ShowDialog() == System.Windows.Forms.DialogResult.OK)                                // открывает выделенный файл
             {
+                pathtofile = openFileDialog1.FileName;
                 q = new StockQuotes.Quotes(openFileDialog1.FileName, new TimeSpan(1, 0, 0, 0));                      // Создаем новый класс котировок
             }
             FileInfo fi = new FileInfo(openFileDialog1.FileName);
-            listBox1.Items.Add(fi.Name.Replace(".csv", ""));
+            listBox1.Items.Add(fi.FullName);
             заВесьПериодToolStripMenuItem.Enabled = true;
             заПериодToolStripMenuItem.Enabled = true;
-        }
+            ценовойКаналToolStripMenuItem.Enabled = true;
+        }  // Котировка из папки
         private void заВесьПериодToolStripMenuItem_Click    (object sender, EventArgs e)
         {
-            // Удаляем прошлый график
-            if (zedGraphControl1.GraphPane.CurveList.Count > 0)     
-                zedGraphControl1.GraphPane.CurveList.RemoveAt(0);
-
-            // Создадим список точек
-            GraphPane pane      =   zedGraphControl1.GraphPane;  
-            PointPairList list  =   new PointPairList();                                                       
-            int i = 0;
-            foreach (var quote in q.quotesList)
-            {
-                double y = quote.closePrice;
-                double x = i++;
-                list.Add(x, y);
-            }
-
-            // Работаем с линией
-            Color curveColor = Color.Red;                                                              // Цвет линии
-            LineItem myCurve = pane.AddCurve("", list, curveColor, SymbolType.None);                   // Создание линии
-            myCurve.Line.IsSmooth = true;                                                              // Включим сглаживание
-            zedGraphControl1.AxisChange();                                                             // Обновим график
-            zedGraphControl1.Invalidate();
-        }
+            ShowCandles();
+        }  // Зарисовка графика за весь период
         private void заПериодToolStripMenuItem_Click        (object sender, EventArgs e)
         {
             if (zedGraphControl1.GraphPane.CurveList.Count > 0)                                                                     // Удаляет прошлый график
@@ -90,16 +132,15 @@ namespace Котировки
             f.Owner = this;
             f.Show();
 
-        }
+        }  // Выставление периода
         private void новыйФайлToolStripMenuItem_Click       (object sender, EventArgs e)
         {
 
-        }
+        }  // Тиккеры
         private void изЗагруженныхToolStripMenuItem_Click   (object sender, EventArgs e)
         {
 
-        }
-        // Работа с тикерами
+        }  // Тиккеры из загруженных
         private void изПапкиToolStripMenuItem1_Click        (object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog1 = new OpenFileDialog();                                                   // Показывает дислоговое окно с выором файла
@@ -116,211 +157,22 @@ namespace Котировки
                 }
             }
 
-        }
-
-        /// <summary>
-        /// Функция показа графика
-        /// </summary>
-        public void ShowGraph()
-        {
-            /*
-            GraphPane pane = zedGraphControl1.GraphPane;                                                                            // 
-            PointPairList list = new PointPairList();                                                                               // Создадим список точек
-
-            int i = 0;
-            foreach (var quote in q.quotesList.Where(x => x.starttime >= start && x.starttime <= end))
-            {
-                double y = quote.closePrice;
-                double x = i++;
-                list.Add(x, y);
-            }
-
-            Color curveColor = Color.Red;                                                                                           // Цвет линии
-            LineItem myCurve = pane.AddCurve("", list, curveColor, SymbolType.None);                                                // Создание линии
-            myCurve.Line.IsSmooth = true;                                                                                           // Включим сглаживание
-
-            zedGraphControl1.AxisChange();                                                                                          // Обновим график
-            zedGraphControl1.Invalidate();
-             */
-            // Удалим существующую панель с графиком
-            zedGraphControl1.MasterPane.PaneList.Clear();
-
-            // Создадим две панели для графика, где будут отображаться
-            // одинаковые данные, но с разными значениями BarType
-            GraphPane pane = new GraphPane();
-            // Количество столбцов
-            int itemscount = q.quotesList.Capacity;
-            int bars = 0;
-            // Сгенерируем данные для высот столбцов
-            double[] YValues1 = GenerateData(itemscount, 2, bars);
-            double[] YValues2 = GenerateData(itemscount, 1, bars);
-            double[] YValues3 = GenerateData(itemscount, 3, bars);
-            /*
-            pane.XAxis.Type = AxisType.Date;
-            pane.XAxis.Scale.Min = new XDate(q.quotesList.Min(x => x.starttime));
-            pane.XAxis.Scale.Max = new XDate(q.quotesList.Max(x => x.starttime));
-             */
-            double[] XValues = new double[itemscount];
-
-            // Заполним данные
-            for (int i = 0; i < itemscount; i++)
-            {
-                XValues[i] = i + 1;
-            }
-
-            // По одинаковым данным построим две гистограммы
-            CreateBars(pane, XValues, YValues1, YValues2, YValues3);
-
-            // !!! У первого графика столбцы накладываются один на другой
-            // всегда в одинаковой последовательности:
-            // впереди синий, затем красный, затем желтый
-            pane.BarSettings.Type = BarType.Overlay;
-            pane.Title.Text = "BarType.Overlay";
-
-            // Добавим созданные панели в MasterPane
-
-            zedGraphControl1.MasterPane.Add(pane);
-
-            // Зададим расположение графиков
-            using (Graphics g = CreateGraphics())
-            {
-                // Графики будут размещены в один столбец друг под другом
-                zedGraphControl1.MasterPane.SetLayout(g, PaneLayout.SingleColumn);
-            }
-
-            pane.YAxis.Scale.MinAuto = true;
-            pane.YAxis.Scale.MaxAuto = true;
-            pane.IsBoundedRanges = true;
-            // Обновим данные об осях
-            zedGraphControl1.AxisChange();
-
-            // Обновляем график
-            zedGraphControl1.Invalidate();
-        }
-        /// <summary>
-        /// Сгенерировать данные для графика
-        /// </summary>
-        /// <param name="itemscount"></param>
-        /// <param name="rnd"></param>
-        /// <returns></returns>
-        private double[] GenerateData                       (int itemscount, int a, int bars)
-        {
-            double[] values = new double[itemscount];
-            int i = 0;
-            bars = 0;
-            switch (a)
-            {
-                case 1:
-                    i = 0;
-                    foreach (var quote in q.quotesList.Where(x => x.starttime >= start && x.starttime <= end))
-                    {
-                        if (quote.closePrice < quote.openPrice)
-                        {
-                            values[i++] = quote.openPrice;
-                            bars++;
-                        }
-                        else
-                        {
-                            values[i++] = 0;
-                            bars++;
-                        }
-                    }
-                    break;
-                case 2:
-                    i = 0;
-                    foreach (var quote in q.quotesList.Where(x => x.starttime >= start && x.starttime <= end))
-                    {
-                        if (quote.closePrice < quote.openPrice)
-                        {
-                            values[i++] = quote.closePrice;
-                            bars++;
-                        }
-                        else
-                        {
-                            values[i++] = quote.openPrice;
-                            bars++;
-                        }
-                    }
-                    break;
-                case 3:
-                    i = 0;
-                    foreach (var quote in q.quotesList.Where(x => x.starttime >= start && x.starttime <= end))
-                    {
-                        if (quote.closePrice >= quote.openPrice)
-                        {
-                            values[i++] = quote.closePrice;
-                            bars++;
-                        }
-                        else
-                        {
-                            values[i++] = 0;
-                            bars++;
-                        }
-                    }
-                    break;
-            }
-
-            return values;
-        }
-        /// <summary>
-        /// Создать столбики по данным
-        /// </summary>
-        /// <param name="pane">Панель, куда добавляются столбцы</param>
-        /// <param name="XValues">Координаты по оси X</param>
-        /// <param name="YValues1">Данные по оси Y для первого набора столбцов</param>
-        /// <param name="YValues2">Данные по оси Y для второго набора столбцов</param>
-        /// <param name="YValues3">Данные по оси Y для третьего набора столбцов</param>
-        private static void CreateBars(GraphPane pane,
-            double[] XValues,
-            double[] YValues1, double[] YValues2, double[] YValues3)
-        {
-            pane.CurveList.Clear();
-
-            // Создадим три гистограммы
-            pane.AddBar("", XValues, YValues1, Color.White);
-            pane.AddBar("", XValues, YValues2, Color.Red);
-            pane.AddBar("", XValues, YValues3, Color.Green);
-        }
-        
-        // Работа с листбоксом
-        private void listBox1_SelectedIndexChanged          (object sender, EventArgs e)
+        }  // Тиккеры из папки
+        private void показатьToolStripMenuItem_Click        (object sender, EventArgs e)
         {
 
-        }
-        // Кнопка
-        private void button1_Click                          (object sender, EventArgs e)
+        }  // Показ графиков
+        private void ценовойКаналToolStripMenuItem_Click    (object sender, EventArgs e)
         {
-            if (tickerPath != null)
-            {
-                if (manage == 0)
-                {
-                    bw.DoWork += bwDownload;
-                    bw.RunWorkerAsync(tickerPath);
-                    manage++;
-                }
-            }
-            else
-                MessageBox.Show("Нет файла тиккеров");
-        }
-        // ПрогресБар
-        private void progressBar1_Click                     (object sender, EventArgs e)
-        {
-
-        }
-        // Поток
-        public void bwDownload                              (object sender, DoWorkEventArgs e)
-        {
-            Download(Convert.ToString(e.Argument));
-        }
-
-
+            ShowPriceChannel();
+        }  // Показ ценового канала
 
         // Работа с загрузкой
         /// <summary>
         /// Конструктор, создающий менеджер загрузок
         /// </summary>
         /// <param name="path">Путь к файлу с тиккерами</param>
-        public void Download                    (string path)
+        public void Download                (string path)
         {
             progressBar1.Invoke(new Del((i) => progressBar1.Visible = i), true);
             loadedFiles = new List<string>();
@@ -335,11 +187,13 @@ namespace Котировки
                 progressBar1.Invoke(new Del1((i) => progressBar1.Maximum = i), p++);
             }
             p = 0;
-            foreach(var link in generatedLinks)
+            foreach (var link in generatedLinks)
             {
                 SaveFilesFromYahoo(link.Value, link.Key);
                 progressBar1.Invoke(new Del1((i) => progressBar1.Value = i), p++);
-                listBox1.Invoke(new Del2((s) => listBox1.Items.Add(s)), link.Key);
+                string newpath = Directory.GetCurrentDirectory();
+                string newstring = (newpath + "\\" + link.Key + ".csv");
+                listBox1.Invoke(new Del2((s) => listBox1.Items.Add(s)), newstring);
                 listBox2.Invoke(new Del2((s) => listBox2.Items.Remove(s)), link.Key);
             }
             MessageBox.Show("Загрузка завершена");
@@ -357,7 +211,7 @@ namespace Котировки
         /// <param name="lastDay">День последней записи в файле</param>
         /// <param name="lastYear">Год последней записи в файле</param>
         /// <returns>Возвращает ссылку на скачивание нужного файла</returns>
-        public string Link                      (string name, int month, int day, int year, char timeframe, int lastMoth, int lastDay, int lastYear)
+        public string Link                  (string name, int month, int day, int year, char timeframe, int lastMoth, int lastDay, int lastYear)
         {
             return ("http://real-chart.finance.yahoo.com/table.csv?s=" + name + "&d=" + month + "&e=" + day + "&f=" + year + "&g=" + timeframe + "&a=" + lastMoth + "&b=" + lastDay + "&c=" + lastYear + "&ignore=.csv");
         }
@@ -365,34 +219,205 @@ namespace Котировки
         /// Функция загрузки файлов с сайта Yahoo
         /// </summary>
         /// <param name="link">Сгенерированная ссылка</param>
-        public void SaveFilesFromYahoo          (string link, string fileName)
+        public void SaveFilesFromYahoo      (string link, string fileName)
         {
             var webClient = new WebClient();
-            
+
             if (pathToFolder == null)
-                webClient.DownloadFile(link, fileName);
+                webClient.DownloadFile(link, fileName + ".csv");
             else
-                webClient.DownloadFile(link, pathToFolder+fileName);
+                webClient.DownloadFile(link, pathToFolder + fileName + ".csv");
         }
         /// <summary>
         /// Изменение пути назначения загрузки
         /// </summary>
         /// <param name="path">Путь к папке загрузки</param>
-        public void ChangeDestanationFolder     (string path)
+        public void ChangeDestanationFolder (string path)
         {
             pathToFolder = path;
         }
         /// <summary>
         /// Стандартный конструктор
         /// </summary>
-        public void Download()
+        public void Download()                           
         {
-            loadedFiles     =   new List<string>();
-            generatedLinks  =   new Dictionary<string, string>();
+            loadedFiles = new List<string>();
+            generatedLinks = new Dictionary<string, string>();
         }
 
-        private void listBox2_SelectedIndexChanged(object sender, EventArgs e)
+        // Элементы формы
+        // Работа с листбоксом
+        private void listBox1_SelectedIndexChanged  (object sender, EventArgs e)
         {
+
+        }
+        // Кнопка
+        private void button1_Click                  (object sender, EventArgs e)
+        {
+            if (tickerPath != null)
+            {
+                if (manage == 0)
+                {
+                    bw.DoWork += bwDownload;
+                    bw.RunWorkerAsync(tickerPath);
+                    manage++;
+                }
+            }
+            else
+                MessageBox.Show("Нет файла тиккеров");
+        }
+        // ПрогресБар
+        private void progressBar1_Click             (object sender, EventArgs e)
+        {
+
+        }
+        private void listBox2_SelectedIndexChanged  (object sender, EventArgs e)
+        {
+        }
+        private void listBox1_MouseDoubleClick      (object sender, MouseEventArgs e)
+        {
+            q = new StockQuotes.Quotes(Convert.ToString(listBox1.SelectedItem), new TimeSpan(1, 0, 0, 0));
+            ShowCandles();
+            ShowPriceLine();
+            ShowPriceChannel();
+        }
+
+        // Работа с графиками
+        /// <summary>
+        /// Показ свечей
+        /// </summary>
+        public void ShowCandles()
+        {
+            GraphPane pane = zedGraphControl1.GraphPane;
+            pane.YAxis.MajorGrid.IsVisible = true;
+            pane.XAxis.MajorGrid.IsVisible = true;
+            // Set the title and axis labels   
+            //pane.Title.Text = "Japanese Candlestick Chart Demo";
+            //pane.XAxis.Title.Text = "Trading Date";
+            //pane.YAxis.Title.Text = "Share Price, $US";                                                                          
+
+            // Создадим две панели для графика, где будут отображаться
+            // одинаковые данные, но с разными значениями BarType
+            // Количество столбцов
+            int itemscount = q.quotesList.Capacity;
+            int bars = 0;
+            StockPointList spl = new StockPointList();
+            foreach(var bar in q.quotesList)
+            {
+                DateTime x = bar.starttime;
+                double close = bar.closePrice;
+                double hi = bar.maxPrice;
+                double open = bar.openPrice;
+                double low = bar.minPrice;
+
+                StockPt pt = new StockPt(new XDate(x), hi, low, open, close, 100000);
+                spl.Add(pt);
+
+                //open = close;
+                // Advance one day
+                //xDate.AddDays(1.0);
+                // but skip the weekends
+                //if (XDate.XLDateToDayOfWeek(xDate.XLDate) == 6)
+                // xDate.AddDays(2.0);
+            }
+
+            JapaneseCandleStickItem myCurve = pane.AddJapaneseCandleStick("trades", spl);
+            myCurve.Stick.IsAutoSize = true;
+            //myCurve.Stick.Color = Color.Blue;
+
+            // Use DateAsOrdinal to skip weekend gaps
+            pane.XAxis.Type = AxisType.DateAsOrdinal;
+            //myPane.XAxis.Scale.Min = new XDate(2006, 1, 1);
+
+            // pretty it up a little
+            //pane.Chart.Fill = new Fill(Color.White, Color.LightGoldenrodYellow, 45.0f);
+            //pane.Fill = new Fill(Color.White, Color.FromArgb(220, 220, 255), 45.0f);
+
+            // Tell ZedGraph to calculate the axis ranges
+            zedGraphControl1.AxisChange();
+            zedGraphControl1.Invalidate();
+        }
+        /// <summary>
+        /// Показывает графиг скользящей средней
+        /// </summary>
+        public void ShowPriceLine()
+        {
+            // Создадим список точек
+            GraphPane pane = zedGraphControl1.GraphPane;
+            PointPairList list = new PointPairList();
+            int i = 0;
+            start = q.quotesList.Min(x => x.starttime);
+            end = q.quotesList.Max(x => x.starttime);
+            q.GetPerAvr(start, end);
+            foreach (var quote in q.averDict)
+            {
+                double y = quote.Value;
+                double x = i++;
+                list.Add(x, y);
+            }
+
+            // Работаем с линией
+            Color curveColor = Color.Red;                                                              // Цвет линии
+            LineItem myCurve = pane.AddCurve("", list, curveColor, SymbolType.None);                   // Создание линии
+            myCurve.Line.IsSmooth = true;                                                              // Включим сглаживание
+            zedGraphControl1.AxisChange();                                                             // Обновим график
+            zedGraphControl1.Invalidate();
+        }
+        /// <summary>
+        /// Показы графика ценового канала
+        /// </summary>
+        public void ShowPriceChannel()
+        {
+            // Создадим список точек
+            GraphPane pane = zedGraphControl1.GraphPane;
+            PointPairList list = new PointPairList();
+            PointPairList list2 = new PointPairList();
+            int i = 0;
+            if (toolStripComboBox1.SelectedItem == null)
+            {
+                toolStripComboBox1.SelectedItem = "1";
+                MessageBox.Show("Определите время ценового канала");
+            }
+            int period = Convert.ToInt32(toolStripComboBox1.SelectedItem);
+            if (start == null)
+            {
+                start = q.quotesList.Min(x => x.starttime);
+                end = q.quotesList.Max(x => x.starttime);
+            }
+            q.PriceChannel(Convert.ToInt32(toolStripComboBox1.SelectedItem));
+            foreach (var quote in q.ChannelMax)
+            {
+                for (int j = 0; j < period; j++)
+                {
+                    double y = quote;
+                    double x = i++;
+                    list.Add(x, y);
+                }
+            }
+            i = 0;
+            foreach (var quote in q.ChannelMin)
+            {
+                for (int j = 0; j < period; j++)
+                {
+                    double y = quote;
+                    double x = i++;
+                    list2.Add(x, y);
+                }
+            }
+            // Работаем с линией
+            Color curveColor = Color.Green;                                                              // Цвет линии
+            LineItem myCurve = pane.AddCurve("", list, curveColor, SymbolType.None);                   // Создание линии
+            curveColor = Color.Yellow;                                                                 // Цвет линии
+            LineItem myCurve2 = pane.AddCurve("", list2, curveColor, SymbolType.None);                 // Создание линии
+            myCurve.Line.IsSmooth = true;                                                              // Включим сглаживание
+            zedGraphControl1.AxisChange();                                                             // Обновим график
+            zedGraphControl1.Invalidate();
+        }
+        
+        // Поток
+        public void bwDownload                              (object sender, DoWorkEventArgs e)
+        {
+            Download(Convert.ToString(e.Argument));
         }
     }
 }

@@ -32,7 +32,7 @@ namespace Котировки
             Form1 prForm1 = (Form1)this.Owner;
             prForm1.start = dateTimePicker1.Value;
             prForm1.end = dateTimePicker2.Value;
-            prForm1.ShowGraph();
+            prForm1.ShowPriceLine();
             this.Hide();
         }
     }

@@ -9,7 +9,9 @@ namespace StockQuotes
     class Quotes
     {
         public List<Bar> quotesList;                       // массив котировок
-        private Dictionary<DateTime, double> averDict;      // Словарь скользящих средних
+        public Dictionary<DateTime, double> averDict;      // Словарь скользящих средних
+        public List<double> ChannelMax;
+        public List<double> ChannelMin;
 
         // конструктор класса
         public Quotes(string path, TimeSpan ts)
@@ -63,10 +65,23 @@ namespace StockQuotes
         // расчет скользящей седней
         public void GetPerAvr(DateTime start, DateTime end)
         {
-            double average = (GetMax(start, end) + GetMin(start, end)) / 2;     // расчет скользящей средней
-            averDict.Add(start, average);                                       // добавление скользящей средней в словарь
+            foreach (var quote in quotesList.Where(x => (x.starttime >= start && x.starttime <= end)))
+            {
+                double average = (quote.maxPrice + quote.minPrice) / 2;     // расчет скользящей средней
+                averDict.Add(quote.starttime, average);                     // добавление скользящей средней в словарь
+            }
         }
 
+        public void PriceChannel(int period)
+        {
+            ChannelMax = new List<double>();
+            ChannelMin = new List<double>();
+            for (int K = 0; K < ((quotesList.Count)-(period)); K += period)
+            {
+                ChannelMax.Add(quotesList.Skip(K).Take(period).Max(x => x.maxPrice));
+                ChannelMin.Add(quotesList.Skip(K).Take(period).Min(x => x.minPrice));
+            }
+        }
         // преобразование таймфрейма
         public void TimeFrameChange(DateTime start, DateTime end)
         {
