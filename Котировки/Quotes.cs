@@ -8,7 +8,7 @@ namespace StockQuotes
 {
     class Quotes
     {
-        private List<Bar> quotesList;                       // массив котировок
+        public List<Bar> quotesList;                       // массив котировок
         private Dictionary<DateTime, double> averDict;      // Словарь скользящих средних
 
         // конструктор класса
